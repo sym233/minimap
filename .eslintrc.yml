@@ -1,0 +1,41 @@
+env:
+  browser: true
+  es2021: true
+extends:
+  - plugin:react/recommended
+  - airbnb
+parser: '@typescript-eslint/parser'
+parserOptions:
+  ecmaFeatures:
+    jsx: true
+  ecmaVersion: latest
+  sourceType: module
+plugins:
+  - react
+  - '@typescript-eslint'
+rules: 
+  arrow-parens:
+  - warn
+  - as-needed
+  import/extensions: off
+  import/no-unresolved: off
+  linebreak-style: 
+  - warn
+  - windows
+  no-multiple-empty-lines:
+  - warn
+  no-undef:
+  - warn
+  no-unused-vars:
+  - warn
+  react/button-has-type:
+  - warn
+  react/function-component-definition:
+  - error
+  - namedComponents: arrow-function
+  react/jsx-filename-extension:
+  - error
+  - extensions: 
+    - '.tsx'
+  react/jsx-props-no-spreading:
+  - warn
