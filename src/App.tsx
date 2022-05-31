@@ -1,6 +1,14 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+
+import { RootState } from './store';
+
 // import { Loader } from '@googlemaps/js-api-loader';
 import Map, { LatLng } from './Map';
+import Timeline from './Timeline';
+import { left, right } from './Reducer/headingSlice';
+import Run from './Run';
+import { set } from './Reducer/lagLngSlice';
 
 
 
@@ -27,14 +35,18 @@ import Map, { LatLng } from './Map';
 //   // })
 // }
 const App = () => {
-  const [loadMap, setLoadMap] = useState(false);
-  const [center, setCenter] = useState<LatLng>({ lat: 30, lng: -110 });
+  // const [center, setCenter] = useState<LatLng>({ lat: 30, lng: -110 });
   const [zoom, setZoom] = useState(10);
+  const lagLng = useSelector((rootState: RootState) => rootState.latLng);
+  const dispatch = useDispatch();
+  const rotateLeft = useCallback(() => dispatch(left()), [dispatch]);
+  const rotateRight = useCallback(() => dispatch(right()), [dispatch]);
 
   const getLocation = () => {
     navigator.geolocation.getCurrentPosition(position => {
-      const lagLng = { lat: position.coords.latitude, lng: position.coords.longitude };
-      setCenter(lagLng);
+      const geoLagLng = { lat: position.coords.latitude, lng: position.coords.longitude };
+      // setCenter(geoLagLng);
+      dispatch(set(geoLagLng));
     }, err => {
       console.error(err);
     });
@@ -42,14 +54,19 @@ const App = () => {
 
   return (
     <>
-      <button onClick={getLocation}>Get My Location</button>
-      <button onClick={() => setLoadMap(true)}>Load Map</button>
-      <button onClick={() => setZoom(z => z + 1)}>+</button>
-      <button onClick={() => setZoom(z => z - 1)}>-</button>
-
-      {/* <div></div> */}
-      {/* { loadMap? <Map /> : null } */}
-      <Map zoom={zoom} center={center} />
+      <div className="left">
+        <Map zoom={zoom} center={lagLng} />
+      </div>
+      <div className="right">
+        <button onClick={getLocation}>Get My Location</button>
+        <button onClick={() => setZoom(z => z + 1)}>+</button>
+        <button onClick={() => setZoom(z => z - 1)}>-</button>
+        <button onClick={rotateLeft}>left</button>
+        <button onClick={rotateRight}>right</button>
+        <Run />
+        <div>{`lat: ${lagLng.lat}, lng: ${lagLng.lng}`}</div>
+        <Timeline />
+      </div>
     </>
   );
 };
