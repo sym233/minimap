@@ -3,7 +3,6 @@ import { useDispatch, useSelector } from 'react-redux';
 
 import { Wrapper, Status } from '@googlemaps/react-wrapper';
 
-// import { set } from './Reducer/lagLngSlice';
 import { add, MarkerOption } from './Reducer/markersSlice';
 import { RootState } from './store';
 
@@ -16,8 +15,11 @@ const mapId = 'e3d3436438fcc6d9';
  * @param dep the dependency that decides running effect()
  * @param comp compare previous and current dep's. run effect() if it returns true.
  */
-// eslint-disable-next-line max-len
-function useCompareEffect<T>(effect: React.EffectCallback, dep: T, comp: (oldValue: T, newValue: T) => boolean): void {
+function useCompareEffect<T>(
+  effect: React.EffectCallback,
+  dep: T,
+  comp: (oldValue: T, newValue: T) => boolean,
+): void {
   const firstRender = useRef(true);
   const prevValue = useRef(dep);
   useEffect(() => {
@@ -29,27 +31,33 @@ function useCompareEffect<T>(effect: React.EffectCallback, dep: T, comp: (oldVal
   }, [effect, dep, comp]);
 }
 
-
+/* global google */
 export type LatLng = google.maps.LatLngLiteral;
-
 
 interface MarkerProps {
   map: google.maps.Map;
   option: MarkerOption;
+  index: number;
 }
 
-const Marker: React.FC<MarkerProps> = ({ map, option }) => {
+const Marker: React.FC<MarkerProps> = ({ map, option, index }) => {
   const marker = useRef<google.maps.Marker>();
   useEffect(() => {
     marker.current = new window.google.maps.Marker({
       map,
       position: option.position,
-      label: option.index.toString(),
+      label: `${index}`,
     });
     return () => {
       marker.current?.setMap(null);
     };
-  }, [marker, map, option.position]);
+  }, [map]);
+  useEffect(() => {
+    marker.current?.setPosition(option.position);
+  }, [option.position]);
+  useEffect(() => {
+    marker.current?.setLabel(`${index}`);
+  }, [index]);
   return null;
 };
 
@@ -62,8 +70,8 @@ const Markers: React.FC<MarkersProps> = ({ map, options }) => {
   if (map) {
     return (
       <>
-        {options.map(option => (
-          <Marker key={option.createTime} map={map} option={option} />
+        {options.map((option, index) => (
+          <Marker key={option.createTime} index={index} map={map} option={option} />
         ))}
       </>
     );
@@ -73,7 +81,7 @@ const Markers: React.FC<MarkersProps> = ({ map, options }) => {
 
 interface MapProps {
   zoom: number;
-  center: LatLng;
+  // center: LatLng;
 }
 
 interface PolylineProps {
@@ -91,34 +99,37 @@ const Polyline: React.FC<PolylineProps> = ({ map, path }) => {
         strokeColor: '#FF0000',
         strokeOpacity: 1.0,
         strokeWeight: 2,
+        map,
       });
-      polyline.current.setMap(map);
       return () => polyline.current!.setMap(null);
     }
   }, [map]);
   // useEffect(() => {
   //   polyline.current?.setPath(path);
   // }, [path]);
-  useCompareEffect(() => {
-    polyline.current?.setPath(path);
-  // eslint-disable-next-line max-len
-  }, path, (oldPath, newPath) => oldPath.length !== newPath.length || oldPath.some((val, i) => val !== newPath[i]));
+  useCompareEffect(
+    () => {
+      polyline.current?.setPath(path);
+    },
+    path,
+    (oldPath, newPath) => oldPath.length !== newPath.length
+      || oldPath.some((val, i) => val !== newPath[i]),
+  );
 
   return null;
 };
 
-const MapContent: React.FC<MapProps> = ({ zoom, center }) => {
+const MapContent: React.FC<MapProps> = ({ zoom }) => {
   const ref = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<google.maps.Map>();
-  window.map = map;
-  const markerIndex = useRef(0);
+  // const markerIndex = useRef(0);
   const markers = useSelector((rootState: RootState) => rootState.markers);
-  const heading = useSelector((rootState: RootState) => rootState.heading.heading);
+  const heading = useSelector((rootState: RootState) => rootState.mapControl.heading);
+  const center = useSelector((rootState: RootState) => rootState.mapControl.latLng);
   const dispatch = useDispatch();
   useEffect(() => {
     if (ref.current && !map) {
       const m = new window.google.maps.Map(ref.current, { center, zoom, mapId });
-      // google.maps.event.clearListeners(m, 'click');
       setMap(m);
     }
   }, [ref, map, center, zoom]);
@@ -140,18 +151,15 @@ const MapContent: React.FC<MapProps> = ({ zoom, center }) => {
             lng: e.latLng.lng(),
           };
           dispatch(add({
-            // map,
-            index: markerIndex.current,
             position: latLng,
             createTime: Date.now(),
           }));
-          markerIndex.current++;
         }
         e.stop();
       });
       return listener.remove;
     }
-  }, [map]);
+  }, [map, dispatch]);
 
   return (
     <>

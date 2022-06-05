@@ -1,15 +1,12 @@
+/* eslint-disable no-param-reassign */
+
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { LatLng } from '../Map';
 
-// import { LatLng } from '../Map';
-
-// export type MarkerOption = google.maps.MarkerOptions & { createTime: number };
-
 export interface MarkerOption {
   createTime: number;
-  // map?: google.maps.Map;
   position: LatLng;
-  index: number;
+  // index: number;
 }
 
 const initialState: MarkerOption[] = [];

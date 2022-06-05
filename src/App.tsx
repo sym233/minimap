@@ -3,50 +3,22 @@ import { useSelector, useDispatch } from 'react-redux';
 
 import { RootState } from './store';
 
-// import { Loader } from '@googlemaps/js-api-loader';
-import Map, { LatLng } from './Map';
+import Map from './Map';
 import Timeline from './Timeline';
-import { left, right } from './Reducer/headingSlice';
 import Run from './Run';
-import { set } from './Reducer/lagLngSlice';
+import { setCenter, rotateHeadingBy } from './Reducer/mapControlSlice';
 
-
-
-// type LatLng = google.maps.LatLngLiteral;
-
-// let map: google.maps.Map;
-// let center: LatLng;
-// // const display = document.getElementById('location')!;
-
-// function initMap(): void {
-//   center = center ?? { lat: 30, lng: -110 };
-//   map = new google.maps.Map(document.getElementById('map') as HTMLElement, {
-//     center,
-//     zoom: 8,
-//     // disableDefaultUI: true,
-//   });
-//   // map.addListener('click', (e: google.maps.MapMouseEvent) => {
-//   //   if (e.latLng) {
-//   //     const { lat, lng } = e.latLng;
-//   //     display.innerHTML = `You Clicked at lat: ${lat()}, lng: ${lng()}`;
-//   //   } else {
-//   //     display.innerHTML = 'No laglng'
-//   //   }
-//   // })
-// }
 const App = () => {
-  // const [center, setCenter] = useState<LatLng>({ lat: 30, lng: -110 });
   const [zoom, setZoom] = useState(10);
-  const lagLng = useSelector((rootState: RootState) => rootState.latLng);
+  const center = useSelector((rootState: RootState) => rootState.mapControl.latLng);
   const dispatch = useDispatch();
-  const rotateLeft = useCallback(() => dispatch(left()), [dispatch]);
-  const rotateRight = useCallback(() => dispatch(right()), [dispatch]);
+  const rotateLeft = useCallback(() => dispatch(rotateHeadingBy(-10)), [dispatch]);
+  const rotateRight = useCallback(() => dispatch(rotateHeadingBy(10)), [dispatch]);
 
   const getLocation = () => {
     navigator.geolocation.getCurrentPosition(position => {
       const geoLagLng = { lat: position.coords.latitude, lng: position.coords.longitude };
-      // setCenter(geoLagLng);
-      dispatch(set(geoLagLng));
+      dispatch(setCenter(geoLagLng));
     }, err => {
       console.error(err);
     });
@@ -55,7 +27,7 @@ const App = () => {
   return (
     <>
       <div className="left">
-        <Map zoom={zoom} center={lagLng} />
+        <Map zoom={zoom} />
       </div>
       <div className="right">
         <button onClick={getLocation}>Get My Location</button>
@@ -64,7 +36,7 @@ const App = () => {
         <button onClick={rotateLeft}>left</button>
         <button onClick={rotateRight}>right</button>
         <Run />
-        <div>{`lat: ${lagLng.lat}, lng: ${lagLng.lng}`}</div>
+        <div>{`lat: ${center.lat}, lng: ${center.lng}`}</div>
         <Timeline />
       </div>
     </>

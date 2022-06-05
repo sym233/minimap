@@ -1,14 +1,12 @@
 import { configureStore } from '@reduxjs/toolkit';
 
-import headingSlice from './Reducer/headingSlice';
-import latLngReducer from './Reducer/lagLngSlice';
+import mapControlSlice from './Reducer/mapControlSlice';
 import markersSlice from './Reducer/markersSlice';
 
 export const store = configureStore({
   reducer: {
-    latLng: latLngReducer,
+    mapControl: mapControlSlice,
     markers: markersSlice,
-    heading: headingSlice,
   },
 });
 

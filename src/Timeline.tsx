@@ -5,15 +5,16 @@ import { deleteItem, deleteAll, MarkerOption } from './Reducer/markersSlice';
 import { RootState } from './store';
 
 interface MarkerItemProps {
+  index: number;
   option: MarkerOption;
   deleteItem?: () => void;
 }
 
-const MarkerItem: React.FC<MarkerItemProps> = ({ option, deleteItem }) => {
-  const { lat, lng } = option.position!;
+const MarkerItem: React.FC<MarkerItemProps> = ({ option, deleteItem, index }) => {
+  // const { lat, lng } = option.position;
   return (
     <div>
-      <div>{`lat: ${lat}, lng: ${lng}`}</div>
+      <div>{index}</div>
       {deleteItem ? <button onClick={deleteItem}>Delete</button> : null}
     </div>
   );
@@ -27,6 +28,7 @@ const Timeline = () => {
       {markers.map((marker, i) => (
         <MarkerItem
           key={marker.createTime}
+          index={i}
           option={marker}
           deleteItem={() => dispatch(deleteItem(i))}
         />
