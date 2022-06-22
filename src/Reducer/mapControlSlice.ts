@@ -2,7 +2,8 @@
 
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
-import { LatLng } from '../Map';
+/* global google */
+export type LatLng = google.maps.LatLngLiteral;
 
 interface InitialState {
   latLng: LatLng;

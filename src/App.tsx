@@ -7,6 +7,7 @@ import Map from './Map';
 import Timeline from './Timeline';
 import Run from './Run';
 import { setCenter, rotateHeadingBy } from './Reducer/mapControlSlice';
+import Rec from './Recorder';
 
 const App = () => {
   const [zoom, setZoom] = useState(10);
@@ -36,6 +37,7 @@ const App = () => {
         <button onClick={rotateLeft}>left</button>
         <button onClick={rotateRight}>right</button>
         <Run />
+        <Rec />
         <div>{`lat: ${center.lat}, lng: ${center.lng}`}</div>
         <Timeline />
       </div>

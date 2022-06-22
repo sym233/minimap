@@ -3,20 +3,14 @@ import React, {
   useEffect, useMemo, useRef, useState,
 } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { LatLng } from './Map';
-import { setCenter, setHeading } from './Reducer/mapControlSlice';
+import { LatLng, setCenter, setHeading } from './Reducer/mapControlSlice';
 import { RootState } from './store';
+// import { useEffectInterval } from './utils';
 
-// const speed = 2e-4;
-const timeInterval = 2e3;
 const fps = 30;
-// const R = 6371000; // radius of earth in m
-
 const Run = () => {
-  // const latLng = useSelector((rootState: RootState) => rootState.latLng);
   const markers = useSelector((rootState: RootState) => rootState.markers);
   const lastTime = useRef<number>();
-  // const [progress, setProgress] = useState(0);
   const [runningIndex, setRunningIndex] = useState(0);
   const [running, setRunning] = useState(false);
   const dispatch = useDispatch();
@@ -30,9 +24,9 @@ const Run = () => {
   );
 
   const [moveByPrecent, setMapHeading] = useMemo(() => {
-    if (runningIndex + 1 < markers.length) {
-      const start = markers[runningIndex].position;
-      const end = markers[runningIndex + 1].position;
+    if (runningIndex + 1 < markers.markers.length) {
+      const start = markers.markers[runningIndex].position;
+      const end = markers.markers[runningIndex + 1].position;
       const dlat = end.lat - start.lat;
       const dlng = end.lng - start.lng;
       const heading = 90 - Math.atan2(dlat, dlng) / (Math.PI / 180);
@@ -50,19 +44,23 @@ const Run = () => {
 
   useEffect(() => {
     if (running) {
+      dispatchCenter(markers.markers[0].position);
       setMapHeading?.();
       const interval = setInterval(() => {
-        if (runningIndex + 1 < markers.length && lastTime.current) {
+        if (runningIndex + 1 < markers.markers.length && lastTime.current) {
           const now = Date.now();
+          const timeInterval = (markers.markers[runningIndex + 1].time
+           - markers.markers[runningIndex].time) * 1000;
           const percent = (now - lastTime.current) / timeInterval;
           if (percent >= 1) {
             setRunningIndex(i => i + 1);
             lastTime.current = now;
-          } else {
+          } else if (percent >= 0) {
             moveByPrecent!(percent);
           }
         } else {
           setRunning(false);
+          dispatchHeading(0);
           setRunningIndex(0);
           lastTime.current = undefined;
         }
@@ -70,8 +68,37 @@ const Run = () => {
       return () => clearInterval(interval);
     }
   }, [running, markers, moveByPrecent, setMapHeading, runningIndex]);
+  // useEffectInterval(now => {
+  //   if (running) {
+  //     if (runningIndex + 1 < markers.markers.length && lastTime.current) {
+  //       const timeInterval = (markers.markers[runningIndex + 1].time
+  //         - markers.markers[runningIndex].time) * 1000;
+  //       const percent = (now - lastTime.current) / timeInterval;
+  //       if (percent >= 1) {
+  //         setRunningIndex(i => i + 1);
+  //         lastTime.current = now;
+  //       } else if (percent >= 0) {
+  //         moveByPrecent!(percent);
+  //       }
+  //     }
+  //   }
+  // }, 1000 / fps, [running, markers, moveByPrecent, setMapHeading, runningIndex]);
+  const startRunning = () => {
+    setRunning(true);
+    setRunningIndex(0);
+    setMapHeading?.();
+    lastTime.current = Date.now() + 1000;
+  };
+  const stopRunning = () => {
+    setRunning(false);
+    dispatchHeading(0);
+    setRunningIndex(0);
+    lastTime.current = undefined;
+  };
 
-  return <button onClick={() => { setRunning(r => !r); setRunningIndex(0); lastTime.current = Date.now(); }}>{running ? 'Stop' : 'Run'}</button>;
+  return (running
+    ? <button onClick={stopRunning}>Stop</button>
+    : <button onClick={startRunning}>Run</button>);
 };
 
 export default Run;
