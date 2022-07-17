@@ -1,10 +1,17 @@
 {
   "name": "minimap",
   "version": "1.0.0",
-  "main": "index.js",
+  "_main": "index.js",
   "license": "MIT",
+  "description": "A web app that shows moving trace on map as video",
+  "author": {
+    "name": "sym233",
+    "email": "sym_xd@qq.com"
+  },
+  "homepage": "https://sym233.github.io/minimap",
   "scripts": {
-    "start": "parcel index.html"
+    "start": "parcel index.html",
+    "build": "parcel build --public-url /minimap index.html"
   },
   "dependencies": {
     "@googlemaps/js-api-loader": "^1.14.2",
