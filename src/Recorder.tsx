@@ -1,6 +1,4 @@
-import React, {
-  useCallback, useEffect, useRef, useState,
-} from 'react';
+import React, { useRef, useState } from 'react';
 
 interface AsyncButtonProps {
   onClickAsync?: (event: React.MouseEvent<HTMLButtonElement, MouseEvent>) => Promise<void>;
@@ -17,7 +15,7 @@ const AsyncButton: React.FC<React.PropsWithChildren<AsyncButtonProps>> = ({
       onClickAsync(event).then(() => setLoadingState(false));
     }
   };
-  return <button disabled={loadingState} onClick={onClick}>{children}</button>;
+  return <button type="button" disabled={loadingState} onClick={onClick}>{children}</button>;
 };
 
 class RecWrapper extends MediaRecorder {
@@ -73,21 +71,19 @@ const Rec = () => {
       recorderRef.current = new RecWrapper(await navigator.mediaDevices.getDisplayMedia());
     }
     await recorderRef.current.startAsync();
-    console.log('started');
     setRecording(true);
   };
 
   const stopRecord = async () => {
     await recorderRef.current?.stopAsync();
     setVideoUrl(recorderRef.current?.getVideo());
-    console.log('stoped');
     setRecording(false);
   };
 
   return (
     <>
       {recording
-        ? <AsyncButton onClickAsync={stopRecord}>Stop</AsyncButton>
+        ? <AsyncButton onClickAsync={stopRecord}>Stop Recoding</AsyncButton>
         : <AsyncButton onClickAsync={startRecord}>Record</AsyncButton>}
       {videoUrl ? <a href={videoUrl} download>Download Video</a> : null}
     </>

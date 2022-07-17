@@ -3,6 +3,9 @@ import { LatLng } from '../Reducer/mapControlSlice';
 import { MarkerOption } from '../Reducer/markersSlice';
 import { useCompareEffect } from '../utils';
 
+import nav from '/static/images/nav.png';
+import cmp from '/static/images/cmp.png';
+
 /* global google */
 
 interface MarkerProps {
@@ -81,4 +84,42 @@ export const Polyline: React.FC<PolylineProps> = ({ map, path }) => {
       || oldPath.some((val, i) => val !== newPath[i]),
   );
   return null;
+};
+
+interface NavProps {
+  size: number;
+  mapSize: number;
+}
+
+export const Nav: React.FC<NavProps> = ({ size, mapSize }) => {
+  const style: React.HTMLAttributes<HTMLImageElement>['style'] = {
+    position: 'absolute',
+    height: size,
+    width: size,
+    top: mapSize / 2,
+    left: mapSize / 2,
+    marginTop: -size / 2,
+    marginLeft: -size / 2,
+  };
+  return <img id="nav-icon" alt="nav icon" style={style} src={nav} />;
+};
+
+interface CompassProps {
+  heading: number;
+  size: number;
+  mapSize: number;
+}
+
+export const Compass: React.FC<CompassProps> = ({ heading, size, mapSize }) => {
+  const style: React.HTMLAttributes<HTMLImageElement>['style'] = {
+    position: 'absolute',
+    height: size,
+    width: size,
+    top: mapSize / 5,
+    left: mapSize * (4 / 5),
+    marginTop: -size / 2,
+    marginLeft: -size / 2,
+    transform: `rotate(${-heading}deg)`,
+  };
+  return <img id="compass-icon" alt="compass icon" style={style} src={cmp} />;
 };

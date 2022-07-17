@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 
 import { RootState } from './store';
@@ -6,16 +6,12 @@ import { RootState } from './store';
 import Map from './Map';
 import Timeline from './Timeline';
 import Run from './Run';
-import { setCenter, rotateHeadingBy } from './Reducer/mapControlSlice';
+import { setCenter } from './Reducer/mapControlSlice';
 import Rec from './Recorder';
 
 const App = () => {
-  const [zoom, setZoom] = useState(10);
-  const center = useSelector((rootState: RootState) => rootState.mapControl.latLng);
+  const { latLng: center, zoom } = useSelector((rootState: RootState) => rootState.mapControl);
   const dispatch = useDispatch();
-  const rotateLeft = useCallback(() => dispatch(rotateHeadingBy(-10)), [dispatch]);
-  const rotateRight = useCallback(() => dispatch(rotateHeadingBy(10)), [dispatch]);
-
   const getLocation = () => {
     navigator.geolocation.getCurrentPosition(position => {
       const geoLagLng = { lat: position.coords.latitude, lng: position.coords.longitude };
@@ -28,17 +24,16 @@ const App = () => {
   return (
     <>
       <div className="left">
-        <Map zoom={zoom} />
+        <Map />
       </div>
       <div className="right">
-        <button onClick={getLocation}>Get My Location</button>
-        <button onClick={() => setZoom(z => z + 1)}>+</button>
-        <button onClick={() => setZoom(z => z - 1)}>-</button>
-        <button onClick={rotateLeft}>left</button>
-        <button onClick={rotateRight}>right</button>
-        <Run />
-        <Rec />
+        <div>
+          <button onClick={getLocation} type="button">Get My Location</button>
+          <Run />
+          <Rec />
+        </div>
         <div>{`lat: ${center.lat}, lng: ${center.lng}`}</div>
+        <div>{`zoom: ${zoom}`}</div>
         <Timeline />
       </div>
     </>

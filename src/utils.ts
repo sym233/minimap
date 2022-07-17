@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 
 /**
  * run effect() with custom predicate function
@@ -22,30 +22,3 @@ export function useCompareEffect<T>(
     }
   }, [effect, dep, comp]);
 }
-
-// /**
-//  * The hook will be called every timeout.
-//  * @param timeout number in milisecond.
-//  * @returns number in milisecond, current timestamp
-//  */
-// export function useTimer(timeout: number): number {
-//   const [time, setTime] = useState(Date.now());
-//   useEffect(() => {
-//     const timer = setTimeout(() => {
-//       setTime(Date.now());
-//     }, timeout);
-//     return () => {
-//       clearTimeout(timer);
-//     };
-//   }, [time, timeout]);
-//   return time;
-// }
-
-// export function useEffectInterval(
-//   effect: (time: number) => ReturnType<React.EffectCallback>,
-//   interval: number,
-//   deps?: React.DependencyList,
-// ) {
-//   const time = useTimer(interval);
-//   useEffect(() => effect(time), [effect, time, ...deps ?? []]);
-// }

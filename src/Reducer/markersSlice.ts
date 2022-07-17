@@ -10,11 +10,13 @@ export interface MarkerOption {
 }
 
 interface MarkersState {
-  insertOption: 'append' | { insertAfter: number };
+  show: boolean;
+  insertOption: 'append' | { insertBefore: number };
   markers: MarkerOption[];
 }
 
 const initialState: MarkersState = {
+  show: true,
   insertOption: 'append',
   markers: [],
 };
@@ -26,8 +28,8 @@ export const markersSlice = createSlice({
     add: (state, action: PayloadAction<MarkerOption>) => {
       if (state.insertOption === 'append') {
         state.markers.push(action.payload);
-      } else if (typeof state.insertOption.insertAfter === 'number') {
-        state.markers.splice(state.insertOption.insertAfter, 0, action.payload);
+      } else if (typeof state.insertOption.insertBefore === 'number') {
+        state.markers.splice(state.insertOption.insertBefore, 0, action.payload);
       }
     },
     deleteItem: (state, action: PayloadAction<number>) => {
@@ -40,9 +42,9 @@ export const markersSlice = createSlice({
     setAppend: state => {
       state.insertOption = 'append';
     },
-    setInsertAfter: (state, action: PayloadAction<number>) => {
+    setInsertBefore: (state, action: PayloadAction<number>) => {
       state.insertOption = {
-        insertAfter: action.payload,
+        insertBefore: action.payload,
       };
     },
     setTime: (state, action: PayloadAction<{index: number, time: number}>) => {
@@ -51,11 +53,14 @@ export const markersSlice = createSlice({
     loadMarkers: (state, action: PayloadAction<MarkerOption[]>) => {
       state.markers = action.payload;
     },
+    setMarkersDisplay: (state, action: PayloadAction<boolean>) => {
+      state.show = action.payload;
+    },
   },
 });
 
 export const {
-  add, deleteItem, deleteAll, loadMarkers, setAppend, setInsertAfter, setTime,
+  add, deleteItem, deleteAll, loadMarkers, setAppend, setInsertBefore, setTime, setMarkersDisplay,
 } = markersSlice.actions;
 
 export default markersSlice.reducer;

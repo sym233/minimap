@@ -5,18 +5,21 @@ import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 /* global google */
 export type LatLng = google.maps.LatLngLiteral;
 
-interface InitialState {
+interface MapControl {
+  running: boolean;
   latLng: LatLng;
   heading: number;
+  zoom: number;
 }
 
-const initialState: InitialState = {
+const initialState: MapControl = {
+  running: false,
   latLng: {
     lat: 30,
     lng: -110,
   },
-
   heading: 0,
+  zoom: 10,
 };
 
 export const mapControlSlice = createSlice({
@@ -36,6 +39,12 @@ export const mapControlSlice = createSlice({
     rotateHeadingBy: (state, action: PayloadAction<number>) => {
       state.heading += action.payload;
     },
+    setRunning: (state, action: PayloadAction<boolean>) => {
+      state.running = action.payload;
+    },
+    setZoom: (state, action: PayloadAction<number>) => {
+      state.zoom = action.payload;
+    },
   },
 });
 
@@ -45,6 +54,8 @@ export const {
   moveCenterBy,
   setHeading,
   rotateHeadingBy,
+  setRunning,
+  setZoom,
 } = mapControlSlice.actions;
 
 export default mapControlSlice.reducer;
