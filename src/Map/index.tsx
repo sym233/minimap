@@ -27,6 +27,7 @@ const MapContent: React.FC = () => {
     running,
     zoom,
   } = useSelector((rootState: RootState) => rootState.mapControl);
+  const zoomRef = useRef(zoom);
   const dispatch = useDispatch();
   useEffect(() => {
     if (ref.current && !map) {
@@ -40,6 +41,7 @@ const MapContent: React.FC = () => {
   }, [map, center]);
   useEffect(() => {
     map?.setZoom(zoom);
+    zoomRef.current = zoom;
   }, [map, zoom]);
   useEffect(() => {
     map?.setHeading(heading);
@@ -59,6 +61,8 @@ const MapContent: React.FC = () => {
             position: latLng,
             time: 0,
             createTime: Date.now(),
+            zoom: zoomRef.current,
+            // wait: 0,
           }));
         }
         e.stop();

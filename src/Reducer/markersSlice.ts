@@ -7,6 +7,8 @@ export interface MarkerOption {
   createTime: number;
   time: number;
   position: LatLng;
+  zoom: number;
+  // wait: number;
 }
 
 interface MarkersState {
@@ -50,6 +52,12 @@ export const markersSlice = createSlice({
     setTime: (state, action: PayloadAction<{index: number, time: number}>) => {
       state.markers[action.payload.index].time = action.payload.time;
     },
+    // setWait: (state, action: PayloadAction<{index: number, wait: number}>) => {
+    //   state.markers[action.payload.index].wait = action.payload.wait;
+    // },
+    setZoom: (state, action: PayloadAction<{index: number, zoom: number}>) => {
+      state.markers[action.payload.index].zoom = action.payload.zoom;
+    },
     loadMarkers: (state, action: PayloadAction<MarkerOption[]>) => {
       state.markers = action.payload;
     },
@@ -60,7 +68,8 @@ export const markersSlice = createSlice({
 });
 
 export const {
-  add, deleteItem, deleteAll, loadMarkers, setAppend, setInsertBefore, setTime, setMarkersDisplay,
+  add, deleteItem, deleteAll, loadMarkers, setAppend, setInsertBefore,
+  setTime, setMarkersDisplay, /* setWait, */ setZoom,
 } = markersSlice.actions;
 
 export default markersSlice.reducer;

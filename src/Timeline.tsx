@@ -1,9 +1,9 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 
 import { useSelector, useDispatch } from 'react-redux';
 import {
   deleteItem, deleteAll, MarkerOption, setInsertBefore,
-  setAppend, setTime, loadMarkers, setMarkersDisplay,
+  setAppend, setTime, loadMarkers, setMarkersDisplay, /* setWait, */ setZoom,
 } from './Reducer/markersSlice';
 import { RootState } from './store';
 
@@ -18,11 +18,39 @@ const MarkerItem: React.FC<MarkerItemProps> = ({ option, index }) => {
   const dispatchSetInsertBefore = () => dispatch(setInsertBefore(index));
   const dispatchDeleteItem = () => dispatch(deleteItem(index));
   const dispatchSetTime = (time: number) => dispatch(setTime({ index, time }));
+  const d = useMemo(() => ({
+    // setWait: (wait: number) => dispatch(setWait({ index, wait })),
+    setZoom: (zoom: number) => dispatch(setZoom({ index, zoom })),
+  }), [index]);
   return (
     <div>
       <div>
-        {`${index}, Time: `}
-        <input type="number" value={option.time} onChange={e => dispatchSetTime(Number.parseFloat(e.target.value) || 0)} />
+        <label htmlFor="time">
+          Time:
+          <input
+            name="time"
+            type="number"
+            value={option.time}
+            onChange={e => dispatchSetTime(Number.parseFloat(e.target.value) || 0)}
+          />
+        </label>
+        {/* <label htmlFor="wait">
+          Wait:
+          <input
+            name="wait"
+            type="number"
+            value={option.wait}
+            onChange={e => d.setWait(Number.parseFloat(e.target.value) || 0)} />
+        </label> */}
+        <label htmlFor="zoom">
+          Zoom:
+          <input
+            name="zoom"
+            type="number"
+            value={option.zoom}
+            onChange={e => d.setZoom(Number.parseFloat(e.target.value) || 0)}
+          />
+        </label>
       </div>
       <button type="button" onClick={dispatchDeleteItem}>Delete</button>
       <button

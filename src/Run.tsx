@@ -4,7 +4,7 @@ import React, {
 } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import {
-  LatLng, setCenter, setHeading, setRunning,
+  LatLng, setCenter, setHeading, setRunning, setZoom,
 } from './Reducer/mapControlSlice';
 import { RootState } from './store';
 
@@ -24,14 +24,20 @@ const Run = () => {
     [dispatch],
   );
   const dispatchRunning = (run: boolean) => dispatch(setRunning(run));
+  const dispatchZoom = useCallback(
+    (zoom: number) => dispatch(setZoom(zoom)),
+    [dispatch],
+  );
 
-  const [moveByPrecent, setMapHeading] = useMemo(() => {
+  const [moveByPrecent, setMapHeading, setMapZoom] = useMemo(() => {
     if (runningIndex + 1 < markers.markers.length) {
       const start = markers.markers[runningIndex].position;
       const end = markers.markers[runningIndex + 1].position;
       const dlat = end.lat - start.lat;
       const dlng = end.lng - start.lng;
       const heading = 90 - Math.atan2(dlat, dlng) / (Math.PI / 180);
+      const zStart = markers.markers[runningIndex].zoom;
+      const zEnd = markers.markers[runningIndex + 1].zoom;
       return [(percent: number) => dispatchCenter({
         lat: (1 - percent) * start.lat + percent * end.lat,
         lng: (1 - percent) * start.lng + percent * end.lng,
@@ -39,9 +45,13 @@ const Run = () => {
         if (dlat !== 0 || dlng !== 0) {
           dispatchHeading(heading);
         }
+      }, (percent: number) => {
+        if (zStart !== zEnd) {
+          dispatchZoom((1 - percent) * zStart + percent * zEnd);
+        }
       }];
     }
-    return [undefined, undefined];
+    return [undefined, undefined, undefined];
   }, [runningIndex, markers, dispatchCenter, dispatchHeading]);
 
   const startRunning = () => {
@@ -61,6 +71,7 @@ const Run = () => {
   useEffect(() => {
     if (running) {
       setMapHeading?.();
+      setMapZoom?.(0);
       const interval = setInterval(() => {
         const now = Date.now();
         if (runningIndex + 1 < markers.markers.length && lastTime.current) {
@@ -72,6 +83,7 @@ const Run = () => {
             lastTime.current = now;
           } else if (percent >= 0) {
             moveByPrecent!(percent);
+            setMapZoom!(percent);
           }
         } else {
           stopRunning();
@@ -80,7 +92,7 @@ const Run = () => {
       return () => clearInterval(interval);
     }
     setTimeout(reset, 1000);
-  }, [running, markers, moveByPrecent, setMapHeading, runningIndex]);
+  }, [running, markers, moveByPrecent, setMapZoom, setMapHeading, runningIndex]);
 
   return (running
     ? <button type="button" onClick={() => { stopRunning(); reset(); }}>Stop</button>
