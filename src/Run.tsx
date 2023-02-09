@@ -1,102 +1,123 @@
-import React, {
-  useCallback,
-  useEffect, useMemo, useRef, useState,
-} from 'react';
-import { useDispatch, useSelector } from 'react-redux';
+import React from 'react';
+import { action, reaction, runInAction } from 'mobx';
+import { observer } from 'mobx-react-lite';
+
 import {
-  LatLng, setCenter, setHeading, setRunning, setZoom,
-} from './Reducer/mapControlSlice';
-import { RootState } from './store';
+  LatLng, mapStatus, runningStatus, timeline,
+} from './store';
 
 const fps = 30;
-const Run = () => {
-  const markers = useSelector((rootState: RootState) => rootState.markers);
-  const lastTime = useRef<number>();
-  const [runningIndex, setRunningIndex] = useState(0);
-  const running = useSelector((rootState: RootState) => rootState.mapControl.running);
-  const dispatch = useDispatch();
-  const dispatchCenter = useCallback(
-    (newLatLng: LatLng) => dispatch(setCenter(newLatLng)),
-    [dispatch],
-  );
-  const dispatchHeading = useCallback(
-    (heading: number) => dispatch(setHeading(heading)),
-    [dispatch],
-  );
-  const dispatchRunning = (run: boolean) => dispatch(setRunning(run));
-  const dispatchZoom = useCallback(
-    (zoom: number) => dispatch(setZoom(zoom)),
-    [dispatch],
-  );
 
-  const [moveByPrecent, setMapHeading, setMapZoom] = useMemo(() => {
-    if (runningIndex + 1 < markers.markers.length) {
-      const start = markers.markers[runningIndex].position;
-      const end = markers.markers[runningIndex + 1].position;
-      const dlat = end.lat - start.lat;
-      const dlng = end.lng - start.lng;
-      const heading = 90 - Math.atan2(dlat, dlng) / (Math.PI / 180);
-      const zStart = markers.markers[runningIndex].zoom;
-      const zEnd = markers.markers[runningIndex + 1].zoom;
-      return [(percent: number) => dispatchCenter({
-        lat: (1 - percent) * start.lat + percent * end.lat,
-        lng: (1 - percent) * start.lng + percent * end.lng,
-      }), () => {
-        if (dlat !== 0 || dlng !== 0) {
-          dispatchHeading(heading);
-        }
-      }, (percent: number) => {
-        if (zStart !== zEnd) {
-          dispatchZoom((1 - percent) * zStart + percent * zEnd);
-        }
-      }];
-    }
-    return [undefined, undefined, undefined];
-  }, [runningIndex, markers, dispatchCenter, dispatchHeading]);
-
-  const startRunning = () => {
-    dispatchCenter(markers.markers[0].position);
-    dispatchRunning(true);
-    setRunningIndex(0);
-    setMapHeading?.();
-    lastTime.current = Date.now() + 1000;
-  };
-  const stopRunning = () => {
-    dispatchRunning(false);
-  };
-  const reset = () => {
-    lastTime.current = undefined;
-    dispatchHeading(0);
-  };
-  useEffect(() => {
-    if (running) {
-      setMapHeading?.();
-      setMapZoom?.(0);
-      const interval = setInterval(() => {
-        const now = Date.now();
-        if (runningIndex + 1 < markers.markers.length && lastTime.current) {
-          const timeInterval = (markers.markers[runningIndex + 1].time
-           - markers.markers[runningIndex].time) * 1000;
-          const percent = (now - lastTime.current) / timeInterval;
-          if (percent >= 1) {
-            setRunningIndex(i => i + 1);
-            lastTime.current = now;
-          } else if (percent >= 0) {
-            moveByPrecent!(percent);
-            setMapZoom!(percent);
-          }
-        } else {
-          stopRunning();
-        }
-      }, 1000 / fps);
-      return () => clearInterval(interval);
-    }
-    setTimeout(reset, 1000);
-  }, [running, markers, moveByPrecent, setMapZoom, setMapHeading, runningIndex]);
-
-  return (running
-    ? <button type="button" onClick={() => { stopRunning(); reset(); }}>Stop</button>
-    : <button type="button" onClick={startRunning}>Run</button>);
+const timerRef = {
+  current: undefined as (number | undefined),
 };
+
+const resetRunning = action(() => {
+  Object.assign(runningStatus, {
+    runStartTime: 0,
+    currentIndex: 0,
+    running: false,
+  });
+  mapStatus.heading = 0;
+});
+
+const startRunning = action(() => {
+  runningStatus.running = true;
+});
+
+const stopRunning = action(() => {
+  runningStatus.running = false;
+  resetRunning();
+});
+
+const toNextPoint = action(() => {
+  if (runningStatus.currentIndex + 1 >= timeline.timelineItems.length) {
+    setTimeout(() => {
+      resetRunning();
+    }, 1000);
+    clearInterval(timerRef.current);
+  } else {
+    runningStatus.currentIndex++;
+  }
+});
+
+const setHeading = (position: LatLng, nextPosition: LatLng) => {
+  const dlat = nextPosition.lat - position.lat;
+  const dlng = nextPosition.lng - position.lng;
+  if (dlat !== 0 && dlng !== 0) {
+    const heading = 90 - Math.atan2(dlat, dlng) / (Math.PI / 180);
+    runInAction(() => {
+      mapStatus.heading = heading;
+    });
+  }
+};
+
+function run() {
+  timerRef.current = setInterval(() => {
+    const { currentIndex, runStartTime } = runningStatus;
+    const currentTime = Date.now() - runStartTime;
+    if (currentIndex > 0) {
+      const prevPosition = timeline.timelineItems[currentIndex - 1];
+      const dest = timeline.timelineItems[currentIndex];
+      const startTime = (prevPosition.waitUntil ?? prevPosition.arrivalTime) * 1000;
+      const endTime = dest.arrivalTime * 1000;
+      setHeading(prevPosition.position, dest.position);
+      if (currentTime <= startTime) {
+        runInAction(() => {
+          mapStatus.latLng = prevPosition.position;
+        });
+      } else if (currentTime < endTime) {
+        const precent = (currentTime - startTime) / (endTime - startTime);
+        const lat = (1 - precent) * prevPosition.position.lat + precent * dest.position.lat;
+        const lng = (1 - precent) * prevPosition.position.lng + precent * dest.position.lng;
+        runInAction(() => {
+          mapStatus.latLng = { lat, lng };
+        });
+      } else {
+        runInAction(() => {
+          mapStatus.latLng = dest.position;
+        });
+        toNextPoint();
+      }
+    } else {
+      // first marker
+      const dest = timeline.timelineItems[currentIndex];
+      const endTime = (dest.waitUntil ?? dest.arrivalTime) * 1000;
+      if (currentTime <= endTime) {
+        const next = timeline.timelineItems[currentIndex + 1];
+        runInAction(() => {
+          mapStatus.latLng = dest.position;
+          if (next) {
+            setHeading(dest.position, next.position);
+          }
+        });
+      } else {
+        toNextPoint();
+      }
+    }
+  }, 1000 / fps);
+}
+
+reaction(
+  () => runningStatus.running,
+  r => {
+    if (r) {
+      runInAction(() => {
+        runningStatus.runStartTime = Date.now() + 1000;
+        run();
+      });
+    } else {
+      resetRunning();
+      clearInterval(timerRef.current);
+    }
+  },
+);
+
+const Run = observer(() => {
+  const { running } = runningStatus;
+  return (running
+    ? <button type="button" onClick={stopRunning}>Stop</button>
+    : <button type="button" onClick={startRunning}>Run</button>);
+});
 
 export default Run;

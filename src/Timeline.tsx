@@ -1,61 +1,94 @@
-import React, { useMemo } from 'react';
+import React, { FC, useEffect, useState } from 'react';
+import { observer } from 'mobx-react-lite';
+import { timeline, Timeline as TimelineType, TimelineItem } from './store';
 
-import { useSelector, useDispatch } from 'react-redux';
-import {
-  deleteItem, deleteAll, MarkerOption, setInsertBefore,
-  setAppend, setTime, loadMarkers, setMarkersDisplay, /* setWait, */ setZoom,
-} from './Reducer/markersSlice';
-import { RootState } from './store';
+interface InputProps {
+  label: string;
+  defaultValue: number;
+  onChange?: (value: number) => void;
+}
+
+const Input: FC<InputProps> = ({ label, defaultValue, onChange }) => {
+  const [s, setS] = useState(defaultValue.toString());
+
+  useEffect(() => {
+    setS(defaultValue.toString());
+  }, [defaultValue]);
+
+  useEffect(() => {
+    if (s === defaultValue.toString()) {
+      return;
+    }
+    if (s) {
+      const n = Number.parseFloat(s);
+      if (!Number.isNaN(n)) {
+        onChange?.(n);
+      }
+    }
+  }, [s]);
+
+  const onBlur = () => {
+    setS(defaultValue.toString());
+  };
+
+  const name = `Input-${label}`;
+  return (
+    <label htmlFor={name} style={{ margin: '0 0.2em' }}>
+      {label}
+      :
+      <input
+        name={name}
+        type="number"
+        value={s}
+        onBlur={onBlur}
+        onChange={e => {
+          setS(e.target.value);
+        }}
+      />
+    </label>
+  );
+};
 
 interface MarkerItemProps {
   index: number;
-  option: MarkerOption;
+  item: TimelineItem;
+  insertOption: TimelineType['insertOption'];
 }
 
-const MarkerItem: React.FC<MarkerItemProps> = ({ option, index }) => {
-  const insertOption = useSelector((rootState: RootState) => rootState.markers.insertOption);
-  const dispatch = useDispatch();
-  const dispatchSetInsertBefore = () => dispatch(setInsertBefore(index));
-  const dispatchDeleteItem = () => dispatch(deleteItem(index));
-  const dispatchSetTime = (time: number) => dispatch(setTime({ index, time }));
-  const d = useMemo(() => ({
-    // setWait: (wait: number) => dispatch(setWait({ index, wait })),
-    setZoom: (zoom: number) => dispatch(setZoom({ index, zoom })),
-  }), [index]);
+const MarkerItem: React.FC<MarkerItemProps> = observer(({ item, index, insertOption }) => {
+  const {
+    arrivalTime,
+    waitUntil,
+    // zoom,
+  } = item;
+
   return (
     <div>
       <div>
-        <label htmlFor="time">
-          Time:
-          <input
-            name="time"
-            type="number"
-            value={option.time}
-            onChange={e => dispatchSetTime(Number.parseFloat(e.target.value) || 0)}
-          />
-        </label>
-        {/* <label htmlFor="wait">
-          Wait:
-          <input
-            name="wait"
-            type="number"
-            value={option.wait}
-            onChange={e => d.setWait(Number.parseFloat(e.target.value) || 0)} />
-        </label> */}
-        <label htmlFor="zoom">
-          Zoom:
-          <input
-            name="zoom"
-            type="number"
-            value={option.zoom}
-            onChange={e => d.setZoom(Number.parseFloat(e.target.value) || 0)}
-          />
-        </label>
+        {index}
+        -
+        <Input label="Arrival Time(s)" defaultValue={arrivalTime} onChange={v => timeline.setArrivalTime(index, v)} />
+        {
+          waitUntil === undefined
+            ? <button type="button" onClick={() => timeline.setWaitUntil(index, arrivalTime)}>toggle wait</button>
+            : (
+              <>
+                <Input label="Wait Until(s)" defaultValue={waitUntil} onChange={v => timeline.setWaitUntil(index, v)} />
+                <button type="button" onClick={() => timeline.setWaitUntil(index)}>toggle not wait</button>
+              </>
+            )
+        }
+
+        {/* <Input
+          label="Zoom"
+          defaultValue={zoom}
+          onChange={v => timeline.setZoom(index, v)}
+        /> */}
       </div>
-      <button type="button" onClick={dispatchDeleteItem}>Delete</button>
+      <button type="button" onClick={() => timeline.deleteItem(index)}>Delete</button>
       <button
         type="button"
-        onClick={dispatchSetInsertBefore}
+        onClick={() => timeline.setInsertBefore(index)}
         style={typeof insertOption === 'object' && insertOption.insertBefore === index
           ? { border: '2px solid black' } : {}}
       >
@@ -63,57 +96,47 @@ const MarkerItem: React.FC<MarkerItemProps> = ({ option, index }) => {
       </button>
     </div>
   );
-};
+});
 
-const Timeline = () => {
-  const markers = useSelector((rootState: RootState) => rootState.markers);
-  const dispatch = useDispatch();
-  const dispatchDeleteAll = () => dispatch(deleteAll());
-  const dispatchAppend = () => dispatch(setAppend());
-  const dispatchLoadMarker = (m: typeof markers.markers) => dispatch(loadMarkers(m));
-  const dispatchMarkersDisplay = (show: boolean) => dispatch(setMarkersDisplay(show));
-  const saveMarkersIntoLocal = () => {
-    localStorage.setItem('markers', JSON.stringify(markers.markers));
-  };
-  const loadMarkersFromLocal = () => {
-    const m = localStorage.getItem('markers');
-    if (m) {
-      dispatchLoadMarker(JSON.parse(m));
-    }
-  };
+interface TimelineProps {
+  tl: TimelineType
+}
 
+const Timeline: FC<TimelineProps> = observer(({ tl }) => {
+  const { timelineItems, insertOption, showMarkers } = tl;
   return (
     <div>
       <div className="timeline_markers">
-        {markers.markers.map((marker, i) => (
+        {timelineItems.map((item, i) => (
           <MarkerItem
-            key={marker.createTime}
+            key={item.createTime}
             index={i}
-            option={marker}
+            item={item}
+            insertOption={insertOption}
           />
         ))}
       </div>
       <div>
         <button
-          onClick={dispatchAppend}
+          onClick={() => timeline.setAppend()}
           type="button"
-          style={markers.insertOption === 'append'
+          style={insertOption === 'append'
             ? { border: '2px solid black' } : {}}
         >
           Append
         </button>
-        <button type="button" onClick={dispatchDeleteAll}>Delete all</button>
-        <button type="button" onClick={saveMarkersIntoLocal}>Save</button>
-        <button type="button" onClick={loadMarkersFromLocal}>Load</button>
+        <button type="button" onClick={() => tl.deleteAll()}>Delete all</button>
+        <button type="button" onClick={() => tl.saveTimeline()}>Save</button>
+        <button type="button" onClick={() => tl.loadTimeline()}>Load</button>
         <button
           type="button"
-          onClick={() => dispatchMarkersDisplay(!markers.show)}
+          onClick={() => tl.setShow(!showMarkers)}
         >
-          {markers.show ? 'Hide Markers' : 'Show Markers'}
+          {showMarkers ? 'Hide Markers' : 'Show Markers'}
         </button>
       </div>
     </div>
   );
-};
+});
 
 export default Timeline;

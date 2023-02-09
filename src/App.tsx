@@ -1,32 +1,41 @@
 import React, { useEffect, useState } from 'react';
-import { useSelector, useDispatch } from 'react-redux';
 
-import { RootState } from './store';
+import { runInAction } from 'mobx';
+import { observer } from 'mobx-react-lite';
+
+import {
+  currentCenter,
+  mapStatus,
+  timeline,
+} from './store';
 
 import Map from './Map';
 import Timeline from './Timeline';
 import Run from './Run';
-import { setCenter, setZoom } from './Reducer/mapControlSlice';
 import Rec from './Recorder';
 
-const App = () => {
-  const { latLng: center, zoom } = useSelector((rootState: RootState) => rootState.mapControl);
+const App = observer(() => {
+  const { zoom } = mapStatus;
+  const { lat, lng } = currentCenter;
   const [inputZoom, setInputZoom] = useState(zoom.toString());
-  const dispatch = useDispatch();
   useEffect(() => {
     setInputZoom(zoom.toString());
   }, [zoom]);
   const getLocation = () => {
     navigator.geolocation.getCurrentPosition(position => {
       const geoLagLng = { lat: position.coords.latitude, lng: position.coords.longitude };
-      dispatch(setCenter(geoLagLng));
+      runInAction(() => {
+        mapStatus.latLng = geoLagLng;
+      });
     }, err => {
       console.error(err);
     });
   };
   const submitZoom = () => {
     const z = Number.parseFloat(inputZoom) || zoom;
-    dispatch(setZoom(z));
+    runInAction(() => {
+      mapStatus.zoom = z;
+    });
   };
 
   return (
@@ -40,7 +49,7 @@ const App = () => {
           <Run />
           <Rec />
         </div>
-        <div>{`lat: ${center.lat}, lng: ${center.lng}`}</div>
+        <div>{`lat: ${lat.toFixed(6)}, lng: ${lng.toFixed(6)}`}</div>
         <div>
           <label htmlFor="zoom">
             Zoom:
@@ -63,9 +72,9 @@ const App = () => {
             </button>
           </label>
         </div>
-        <Timeline />
+        <Timeline tl={timeline} />
       </div>
     </>
   );
-};
+});
 export default App;

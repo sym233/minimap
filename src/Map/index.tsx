@@ -1,11 +1,16 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
+import React, {
+  useState, useRef, useEffect, FC,
+} from 'react';
 
 import { Wrapper, Status } from '@googlemaps/react-wrapper';
 
-import { add } from '../Reducer/markersSlice';
-import { RootState } from '../store';
-import { LatLng, setZoom } from '../Reducer/mapControlSlice';
+import { runInAction } from 'mobx';
+import { observer } from 'mobx-react-lite';
+
+import {
+  currentCenter,
+  mapStatus, runningStatus, timeline,
+} from '../store';
 import {
   Compass, Markers, Nav, Polyline,
 } from './Components';
@@ -17,31 +22,32 @@ const mapSize = 600;
 
 /* global google */
 
-const MapContent: React.FC = () => {
+const MapContent: FC = observer(() => {
   const ref = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<google.maps.Map>();
-  const markers = useSelector((rootState: RootState) => rootState.markers);
   const {
     heading,
     latLng: center,
-    running,
     zoom,
-  } = useSelector((rootState: RootState) => rootState.mapControl);
-  const zoomRef = useRef(zoom);
-  const dispatch = useDispatch();
+  } = mapStatus;
+  const {
+    running,
+  } = runningStatus;
+  const { timelineItems, showMarkers } = timeline;
+
   useEffect(() => {
     if (ref.current && !map) {
       const m = new window.google.maps.Map(ref.current, { center, zoom, mapId });
       setMap(m);
     }
-  }, [ref, map, center, zoom]);
+  }, [map]);
+
+  const { lat, lng } = center;
   useEffect(() => {
-    // map?.setCenter(center);
-    map?.panTo(center);
-  }, [map, center]);
+    map?.panTo({ lat, lng });
+  }, [map, lat, lng]);
   useEffect(() => {
     map?.setZoom(zoom);
-    zoomRef.current = zoom;
   }, [map, zoom]);
   useEffect(() => {
     map?.setHeading(heading);
@@ -50,49 +56,58 @@ const MapContent: React.FC = () => {
     map?.setOptions({ disableDefaultUI: running });
   }, [map, running]);
   useEffect(() => {
-    if (map) {
-      const clickListener = map.addListener('click', (e: google.maps.MapMouseEvent) => {
-        if (e.latLng && markers.show) {
-          const latLng: LatLng = {
-            lat: e.latLng.lat(),
-            lng: e.latLng.lng(),
-          };
-          dispatch(add({
-            position: latLng,
-            time: 0,
-            createTime: Date.now(),
-            zoom: zoomRef.current,
-            // wait: 0,
-          }));
-        }
-        e.stop();
-      });
-      const zoomListener = map.addListener('zoom_changed', () => {
-        const z = map.getZoom();
-        if (z) {
-          dispatch(setZoom(z));
-        }
-      });
-      return () => {
-        clickListener.remove();
-        zoomListener.remove();
-      };
-    }
-  }, [map, dispatch, markers.show]);
+    const clickListener = map?.addListener('click', (e: google.maps.MapMouseEvent) => {
+      if (e.latLng && showMarkers) {
+        const position = e.latLng.toJSON();
+        timeline.insertTimeline({
+          position,
+          createTime: Date.now(),
+          arrivalTime: 0,
+          zoom,
+        });
+      }
+      e.stop();
+    });
+    const zoomListener = map?.addListener('zoom_changed', () => {
+      const z = map.getZoom();
+      if (z) {
+        runInAction(() => {
+          mapStatus.zoom = z;
+        });
+      }
+    });
+    const moveListener = map?.addListener('center_changed', () => {
+      const mapCenter = map.getCenter()?.toJSON();
+      if (mapCenter) {
+        runInAction(() => {
+          Object.assign(currentCenter, mapCenter);
+        });
+      }
+    });
+    return () => {
+      clickListener?.remove();
+      zoomListener?.remove();
+      moveListener?.remove();
+    };
+  }, [map, showMarkers]);
 
   return (
     <>
       <div id="map" style={{ height: mapSize, width: mapSize }} ref={ref} />
       {running && <Nav size={20} mapSize={mapSize} />}
       <Compass size={50} mapSize={mapSize} heading={heading} />
-      {markers.show && <Markers map={map} options={markers.markers} />}
-      {markers.show && <Polyline map={map} path={markers.markers.map(marker => marker.position)} />}
+      {showMarkers && (
+        <>
+          <Markers map={map} options={timelineItems} />
+          <Polyline map={map} path={timelineItems.map(item => item.position)} />
+        </>
+      )}
     </>
   );
-};
+});
 
 const render = (status: Status) => <h1>{status}</h1>;
-const Map: React.FC = () => (
+const Map: FC = () => (
   <Wrapper apiKey={apiKey} render={render}>
     <MapContent />
   </Wrapper>

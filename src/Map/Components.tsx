@@ -1,16 +1,18 @@
 import React, { useRef, useEffect } from 'react';
-import { LatLng } from '../Reducer/mapControlSlice';
-import { MarkerOption } from '../Reducer/markersSlice';
+
+import { LatLng, TimelineItem } from '../store';
 import { useCompareEffect } from '../utils';
 
+// eslint-disable-next-line import/no-absolute-path
 import nav from '/static/images/nav.png';
+// eslint-disable-next-line import/no-absolute-path
 import cmp from '/static/images/cmp.png';
 
 /* global google */
 
 interface MarkerProps {
   map?: google.maps.Map;
-  option: MarkerOption;
+  option: TimelineItem;
   index: number;
 }
 
@@ -39,7 +41,7 @@ export const Marker: React.FC<MarkerProps> = ({ map, option, index }) => {
 
 interface MarkersProps {
   map?: google.maps.Map;
-  options: MarkerOption[];
+  options: TimelineItem[];
 }
 
 export const Markers: React.FC<MarkersProps> = ({ map, options }) => {
