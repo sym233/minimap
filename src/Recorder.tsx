@@ -39,24 +39,21 @@ class RecWrapper extends MediaRecorder {
 
   public async startAsync(): Promise<void> {
     this.chunks = [];
-    return new Promise(res => {
-      const handler = () => {
-        res();
-        super.removeEventListener('start', handler);
-      };
-      super.addEventListener('start', handler);
+    return new Promise((res, rej) => {
+      super.addEventListener('start', () => res(), { once: true });
+      super.addEventListener('error', e => rej(e), { once: true });
       super.start();
     });
   }
 
   public async stopAsync(): Promise<void> {
     return new Promise(res => {
-      const handler = () => {
+      if (super.stream.active) {
+        super.addEventListener('stop', () => res(), { once: true });
+        super.stop();
+      } else {
         res();
-        super.removeEventListener('stop', handler);
-      };
-      super.addEventListener('stop', handler);
-      super.stop();
+      }
     });
   }
 }
@@ -66,12 +63,38 @@ const Rec = () => {
   const [videoUrl, setVideoUrl] = useState<string>();
   const recorderRef = useRef<RecWrapper>();
 
-  const startRecord = async () => {
+  const startRecord = async (secondTry?: boolean) => {
     if (!recorderRef.current) {
-      recorderRef.current = new RecWrapper(await navigator.mediaDevices.getDisplayMedia());
+      let stream: MediaStream;
+      try {
+        stream = await navigator.mediaDevices.getDisplayMedia({
+          // not typed yet
+          // https://developer.chrome.com/docs/web-platform/screen-sharing-controls/
+          video: {
+            displaySurface: 'browser',
+          },
+          audio: false,
+          preferCurrentTab: true,
+        } as any);
+      } catch (e) {
+        alert((e as DOMException)?.message ?? e);
+        return;
+      }
+      recorderRef.current = new RecWrapper(stream);
     }
-    await recorderRef.current.startAsync();
-    setRecording(true);
+    try {
+      await recorderRef.current.startAsync();
+    } catch (e) {
+      if (!secondTry) {
+        // second try if previous granted permission expired
+        // ask permission again
+        recorderRef.current = undefined;
+        await startRecord(true);
+      }
+    }
+    if (recorderRef.current?.state === 'recording') {
+      setRecording(true);
+    }
   };
 
   const stopRecord = async () => {
@@ -84,7 +107,7 @@ const Rec = () => {
     <>
       {recording
         ? <AsyncButton onClickAsync={stopRecord}>Stop Recoding</AsyncButton>
-        : <AsyncButton onClickAsync={startRecord}>Record</AsyncButton>}
+        : <AsyncButton onClickAsync={() => startRecord()}>Record</AsyncButton>}
       {videoUrl ? <a href={videoUrl} download>Download Video</a> : null}
     </>
   );
